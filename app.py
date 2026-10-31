@@ -240,23 +240,6 @@ def main():
     st.markdown('<div class="main-title">♻️ Waste Segregation Image Classifier & Smart Waste Segregation Assistant</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">Design and Development of a Working Prototype for Waste Segregation Image Classifier Using a CNN Trained on Waste-Category Images</div>', unsafe_allow_html=True)
 
-    # Student metadata banner
-    st.markdown("""
-    <div class="student-badge">
-        <div style="font-size: 1.05rem; font-weight: 700; color: #1b5e20; margin-bottom: 5px;">
-            🎓 Deep Learning &amp; Computer Vision | CNN Municipal Waste Classification
-        </div>
-        <div style="font-size: 0.95rem; color: #2e7d32;">
-            <b>Candidate:</b> AGGIBADALA VENKATA DURGA NAGA PRASAD &nbsp;|&nbsp; 
-            <b>Roll No:</b> <code>23ME1A5402</code> &nbsp;|&nbsp; 
-            <b>Faculty Mentor:</b> Ms. G. Hema Sri
-        </div>
-        <div style="font-size: 0.85rem; color: #546e7a; margin-top: 6px;">
-            <b>Keywords:</b> <code>waste</code> &bull; <code>segregation</code> &bull; <code>image</code> &bull; <code>classifier</code> &bull; <code>cnn</code> &bull; <code>trained</code>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
     with st.expander("📖 Project Abstract & Research Summary", expanded=False):
         st.write("""
         **Abstract:** This work presents a CNN trained on waste-category images to sort waste images into recyclable categories, 
