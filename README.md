@@ -1,10 +1,16 @@
-# ♻️ Smart-Bin Waste Segregation Image Classifier (Deep Learning & Computer Vision)
+# ♻️ Waste Segregation Image Classifier & Smart Waste Segregation Assistant
 
 **Project Title:** Design and Development of a Working Prototype for Waste segregation image classifier Using A CNN trained on waste-category images  
-**Student Name:** AGGIBADALA VENKATA DURGA NAGA PRASAD  
+**Candidate Name:** AGGIBADALA VENKATA DURGA NAGA PRASAD  
 **Roll Number:** `23ME1A5402`  
 **Guide / Mentor:** Ms. G. Hema Sri  
 **Domain:** Deep Learning & Computer Vision  
+**Keywords:** `waste`, `segregation`, `image`, `classifier`, `cnn`, `trained`
+
+---
+
+## 📄 Abstract
+> *This work presents a CNN trained on waste-category images to sort waste images into recyclable categories, addressing the problem of waste segregation image classifier through a data-driven approach. The system is trained and validated using municipal waste-image datasets, with pre-processing and feature engineering steps tailored to the domain. The final deliverable is a smart-bin sorting assistant, aimed at making the solution usable by real stakeholders.*
 
 ---
 

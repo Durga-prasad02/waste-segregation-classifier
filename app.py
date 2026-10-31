@@ -30,7 +30,7 @@ from predict import predict_waste_image
 
 # Page configuration
 st.set_page_config(
-    page_title="Smart-Bin Sorting Assistant | Waste CNN Classifier",
+    page_title="Waste Segregation Image Classifier & Smart Waste Segregation Assistant",
     page_icon="♻️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -43,20 +43,27 @@ st.markdown("""
         font-size: 2.3rem;
         font-weight: 800;
         color: #1b5e20;
-        margin-bottom: 0.2rem;
+        text-align: center;
+        margin-top: 0.2rem;
+        margin-bottom: 0.4rem;
+        line-height: 1.25;
     }
     .sub-title {
-        font-size: 1.05rem;
-        color: #455a64;
+        font-size: 1.1rem;
+        color: #37474f;
+        text-align: center;
         margin-bottom: 1.2rem;
     }
     .student-badge {
         background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-        border-left: 5px solid #2e7d32;
-        padding: 10px 16px;
+        border: 1px solid #a5d6a7;
+        border-left: 6px solid #2e7d32;
+        padding: 12px 20px;
         border-radius: 8px;
         margin-bottom: 1.5rem;
         font-size: 0.95rem;
+        text-align: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
     .bin-card {
         padding: 20px;
@@ -104,10 +111,10 @@ def render_sidebar():
         # Project Details
         st.markdown("### 🎓 Academic Credentials")
         st.markdown("""
-        - **Student:** A. V. Durga Naga Prasad
+        - **Candidate:** AGGIBADALA VENKATA DURGA NAGA PRASAD
         - **Roll No:** `23ME1A5402`
         - **Mentor:** Ms. G. Hema Sri
-        - **Branch:** Deep Learning & CV
+        - **Domain:** Deep Learning & Computer Vision
         """)
         st.divider()
 
@@ -229,18 +236,35 @@ def display_prediction_results(image: Image.Image, model_path: str, use_gradcam:
 def main():
     model_path, use_gradcam = render_sidebar()
 
-    # Header
-    st.markdown('<div class="main-title">♻️ Smart-Bin Waste Segregation Assistant</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">A Deep Learning & Computer Vision System for Municipal Waste Classification</div>', unsafe_allow_html=True)
+    # Header centered at the top of the app
+    st.markdown('<div class="main-title">♻️ Waste Segregation Image Classifier & Smart Waste Segregation Assistant</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Design and Development of a Working Prototype for Waste Segregation Image Classifier Using a CNN Trained on Waste-Category Images</div>', unsafe_allow_html=True)
 
     # Student metadata banner
     st.markdown("""
     <div class="student-badge">
-        <b>Project:</b> Design and Development of a Working Prototype for Waste segregation image classifier Using A CNN trained on waste-category images<br>
-        <b>Candidate:</b> AGGIBADALA VENKATA DURGA NAGA PRASAD (Roll No: <code>23ME1A5402</code>) &nbsp;|&nbsp; 
-        <b>Faculty Mentor:</b> Ms. G. Hema Sri
+        <div style="font-size: 1.05rem; font-weight: 700; color: #1b5e20; margin-bottom: 5px;">
+            🎓 Deep Learning &amp; Computer Vision | CNN Municipal Waste Classification
+        </div>
+        <div style="font-size: 0.95rem; color: #2e7d32;">
+            <b>Candidate:</b> AGGIBADALA VENKATA DURGA NAGA PRASAD &nbsp;|&nbsp; 
+            <b>Roll No:</b> <code>23ME1A5402</code> &nbsp;|&nbsp; 
+            <b>Faculty Mentor:</b> Ms. G. Hema Sri
+        </div>
+        <div style="font-size: 0.85rem; color: #546e7a; margin-top: 6px;">
+            <b>Keywords:</b> <code>waste</code> &bull; <code>segregation</code> &bull; <code>image</code> &bull; <code>classifier</code> &bull; <code>cnn</code> &bull; <code>trained</code>
+        </div>
     </div>
     """, unsafe_allow_html=True)
+
+    with st.expander("📖 Project Abstract & Research Summary", expanded=False):
+        st.write("""
+        **Abstract:** This work presents a CNN trained on waste-category images to sort waste images into recyclable categories, 
+        addressing the problem of waste segregation image classifier through a data-driven approach. 
+        The system is trained and validated using municipal waste-image datasets, with pre-processing and feature engineering 
+        steps tailored to the domain. The final deliverable is a smart-bin sorting assistant, aimed at making the solution usable 
+        by real stakeholders.
+        """)
 
     # Main Interactive Tabs
     tab_upload, tab_camera, tab_samples, tab_analytics = st.tabs([

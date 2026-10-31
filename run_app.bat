@@ -1,11 +1,12 @@
 @echo off
-title Smart-Bin Waste Segregation Classifier
+title Waste Segregation Image Classifier & Smart Waste Segregation Assistant
 cd /d "%~dp0"
 
 echo =====================================================================
-echo  Smart-Bin Waste Segregation Image Classifier
-echo  Student: AGGIBADALA VENKATA DURGA NAGA PRASAD (23ME1A5402)
-echo  Mentor : Ms. G. Hema Sri
+echo  Waste Segregation Image Classifier & Smart Waste Segregation Assistant
+echo  Candidate: AGGIBADALA VENKATA DURGA NAGA PRASAD (23ME1A5402)
+echo  Guide    : Ms. G. Hema Sri
+echo  Domain   : Deep Learning & Computer Vision
 echo =====================================================================
 echo.
 
