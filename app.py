@@ -1,7 +1,7 @@
 """
 Smart-Bin Sorting Assistant - Streamlit Web UI
-Design and Development of a Working Prototype for Waste Segregation Image Classifier
-Author: AGGIBADALA VENKATA DURGA NAGA PRASAD (23ME1A5402)
+Waste Segregation Image Classifier & Smart Waste Segregation Assistant
+Candidate: AGGIBADALA VENKATA DURGA NAGA PRASAD (23ME1A5402)
 Guide: Ms. G. Hema Sri
 Domain: Deep Learning & Computer Vision
 """
@@ -53,17 +53,6 @@ st.markdown("""
         color: #37474f;
         text-align: center;
         margin-bottom: 1.2rem;
-    }
-    .student-badge {
-        background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-        border: 1px solid #a5d6a7;
-        border-left: 6px solid #2e7d32;
-        padding: 12px 20px;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        font-size: 0.95rem;
-        text-align: center;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
     .bin-card {
         padding: 20px;
@@ -151,7 +140,7 @@ def render_sidebar():
 
 def display_prediction_results(image: Image.Image, model_path: str, use_gradcam: bool):
     with st.spinner("🔍 CNN Feature Extraction & Classification in progress..."):
-        time.sleep(0.3)  # Smooth UX
+        time.sleep(0.3)
         results = predict_waste_image(image, model_path=model_path, compute_gradcam=use_gradcam)
 
     predicted_class = results["predicted_class"]

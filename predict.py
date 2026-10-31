@@ -2,12 +2,7 @@
 Inference & Explainability Module for Waste Segregation Classifier
 Author: AGGIBADALA VENKATA DURGA NAGA PRASAD (23ME1A5402)
 Guide: Ms. G. Hema Sri
-
-Provides:
-- Standalone waste image prediction
-- Top-K probability scores
-- Explainable AI (Grad-CAM Activation Heatmaps) showing visual areas influencing the CNN decision
-- Smart-bin color recommendation & recyclability instructions
+Domain: Deep Learning & Computer Vision
 """
 
 import os
@@ -53,51 +48,72 @@ class GradCAM:
         self.gradients = grad_out[0]
 
     def generate(self, input_tensor: torch.Tensor, class_idx: int) -> np.ndarray:
+        self.model.eval()
         self.model.zero_grad()
+        
         output = self.model(input_tensor)
+        target = output[0, class_idx]
+        target.backward(retain_graph=True)
         
-        score = output[0, class_idx]
-        score.backward(retain_graph=True)
+        # Global average pool the gradients
+        weights = torch.mean(self.gradients, dim=(2, 3), keepdim=True)
+        # Weighted combination of activation maps
+        cam = torch.sum(weights * self.activations, dim=1, keepdim=True)
+        cam = F.relu(cam)
         
-        # Pool gradients across spatial dimensions
-        pooled_gradients = torch.mean(self.gradients, dim=[0, 2, 3])
-        
-        # Weight activations by gradients
-        activations = self.activations[0]
-        for i in range(activations.size(0)):
-            activations[i, :, :] *= pooled_gradients[i]
-            
-        heatmap = torch.mean(activations, dim=0).squeeze().cpu().detach().numpy()
-        heatmap = np.maximum(heatmap, 0)
-        max_val = np.max(heatmap)
-        if max_val != 0:
-            heatmap = heatmap / max_val
-            
-        return heatmap
+        # Normalize between 0 and 1
+        cam = cam.squeeze().cpu().detach().numpy()
+        cam = cam - np.min(cam)
+        cam_max = np.max(cam)
+        if cam_max > 0:
+            cam = cam / cam_max
+        return cam
 
 
-def load_classifier(checkpoint_path: str = "waste_classifier_model.pth", device: torch.device = None):
-    """Loads trained checkpoint or creates default initialized model if checkpoint does not exist."""
+def get_inference_transform():
+    return transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+
+def overlay_heatmap_on_image(image: Image.Image, cam: np.ndarray, alpha: float = 0.45) -> Tuple[Image.Image, Image.Image]:
+    """Generates colored Grad-CAM overlay and raw heatmap."""
+    orig_w, orig_h = image.size
+    cam_resized = Image.fromarray(np.uint8(255 * cam)).resize((orig_w, orig_h), Image.Resampling.BILINEAR)
+    cam_np = np.array(cam_resized) / 255.0
+    
+    # Jet colormap
+    colormap = cm.get_cmap("jet")
+    colored_cam = colormap(cam_np)[:, :, :3]
+    colored_cam = np.uint8(colored_cam * 255)
+    
+    orig_np = np.array(image.convert("RGB"))
+    blended = np.uint8(alpha * colored_cam + (1 - alpha) * orig_np)
+    
+    return Image.fromarray(blended), Image.fromarray(colored_cam)
+
+
+def load_waste_model(model_path: str = "waste_classifier_model.pth", device: torch.device = None):
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    checkpoint_file = Path(checkpoint_path)
-    if checkpoint_file.exists():
-        checkpoint = torch.load(checkpoint_file, map_location=device)
-        model_type = checkpoint.get("model_type", "custom")
-        class_names = checkpoint.get("class_names", WASTE_CLASSES)
-        model = build_model(model_name=model_type, num_classes=len(class_names), pretrained=False)
-        model.load_state_dict(checkpoint["model_state_dict"])
+    
+    model = build_model(model_name="custom", num_classes=len(WASTE_CLASSES), pretrained=False)
+    
+    path_obj = Path(model_path)
+    if path_obj.exists():
+        checkpoint = torch.load(str(path_obj), map_location=device)
+        if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+            model.load_state_dict(checkpoint["state_dict"])
+        else:
+            model.load_state_dict(checkpoint)
     else:
-        # Fallback to pre-initialized weights
-        model_type = "custom"
-        class_names = WASTE_CLASSES
-        model = build_model(model_name="custom", num_classes=len(class_names), pretrained=False)
-        checkpoint = None
-
-    model = model.to(device)
+        print(f"⚠️ Model checkpoint '{model_path}' not found! Instantiating model with initialized weights.")
+        
+    model.to(device)
     model.eval()
-    return model, class_names, checkpoint
+    return model, device
 
 
 def predict_waste_image(
@@ -106,85 +122,67 @@ def predict_waste_image(
     compute_gradcam: bool = True
 ) -> Dict[str, Any]:
     """
-    Evaluates an input image and returns classification metadata,
-    probabilities, smart bin instructions, and Grad-CAM visualization.
+    Analyzes an input waste image and returns classification metadata and Grad-CAM saliency.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model, class_names, checkpoint = load_classifier(model_path, device)
+    model, device = load_waste_model(model_path=model_path, device=device)
     
-    preprocess = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    
+    transform = get_inference_transform()
     rgb_image = image.convert("RGB")
-    tensor_input = preprocess(rgb_image).unsqueeze(0).to(device)
+    tensor = transform(rgb_image).unsqueeze(0).to(device)
     
-    # Enable gradient tracking for Grad-CAM
-    tensor_input.requires_grad = True
-
-    outputs = model(tensor_input)
-    probabilities = F.softmax(outputs, dim=1).squeeze().cpu().detach().numpy()
+    with torch.no_grad():
+        logits = model(tensor)
+        probabilities = F.softmax(logits, dim=1).squeeze().cpu().numpy()
+        
+    pred_idx = int(np.argmax(probabilities))
+    pred_class = WASTE_CLASSES[pred_idx]
+    confidence = float(probabilities[pred_idx])
     
-    top_idx = int(np.argmax(probabilities))
-    predicted_class = class_names[top_idx]
-    confidence = float(probabilities[top_idx])
+    class_probs = {WASTE_CLASSES[i]: float(probabilities[i]) for i in range(len(WASTE_CLASSES))}
     
-    all_scores = {class_names[i]: float(probabilities[i]) for i in range(len(class_names))}
-    metadata = CATEGORY_METADATA.get(predicted_class, CATEGORY_METADATA["trash"])
-    
-    result = {
-        "predicted_class": predicted_class,
-        "confidence": confidence,
-        "probabilities": all_scores,
-        "metadata": metadata,
-        "gradcam_overlay": None,
-        "heatmap": None
-    }
-    
-    # Compute Explainable AI Heatmap
+    gradcam_overlay = None
+    heatmap = None
     if compute_gradcam:
         try:
-            target_layer = model.get_last_conv_layer()
-            cam = GradCAM(model, target_layer)
-            heatmap = cam.generate(tensor_input, top_idx)
-            
-            # Upsample heatmap to match original image dimensions
-            heatmap_resized = Image.fromarray((heatmap * 255).astype(np.uint8)).resize(rgb_image.size, Image.BILINEAR)
-            heatmap_np = np.array(heatmap_resized) / 255.0
-            
-            # Apply Jet colormap
-            colormap = cm.get_cmap("jet")
-            colored_heatmap = colormap(heatmap_np)[:, :, :3]  # RGB
-            colored_heatmap = (colored_heatmap * 255).astype(np.uint8)
-            
-            # Alpha blend with original image
-            orig_np = np.array(rgb_image)
-            overlay_np = (orig_np * 0.6 + colored_heatmap * 0.4).astype(np.uint8)
-            
-            result["gradcam_overlay"] = Image.fromarray(overlay_np)
-            result["heatmap"] = Image.fromarray(colored_heatmap)
+            target_layer = model.block4.conv
+            gradcam_generator = GradCAM(model, target_layer)
+            tensor_for_grad = tensor.clone().detach().requires_grad_(True)
+            cam = gradcam_generator.generate(tensor_for_grad, pred_idx)
+            gradcam_overlay, heatmap = overlay_heatmap_on_image(rgb_image, cam)
         except Exception as e:
-            # Grad-CAM is optional enhancement, keep robust
-            result["gradcam_error"] = str(e)
+            print(f"⚠️ Grad-CAM could not be generated: {e}")
             
-    return result
+    metadata = CATEGORY_METADATA.get(pred_class, CATEGORY_METADATA["trash"])
+    
+    return {
+        "predicted_class": pred_class,
+        "confidence": confidence,
+        "probabilities": class_probs,
+        "metadata": metadata,
+        "gradcam_overlay": gradcam_overlay,
+        "heatmap": heatmap
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Waste Image Classifier CLI")
+    parser.add_argument("--image", type=str, required=True, help="Path to input waste image")
+    parser.add_argument("--model", type=str, default="waste_classifier_model.pth", help="Path to checkpoint")
+    args = parser.parse_args()
+    
+    img = Image.open(args.image)
+    result = predict_waste_image(img, model_path=args.model, compute_gradcam=False)
+    
+    meta = result["metadata"]
+    print("\n--- CLASSIFICATION RESULT ---")
+    print(f"Predicted Waste: {meta['label']} ({meta['icon']})")
+    print(f"Confidence:     {result['confidence'] * 100:.2f}%")
+    print(f"Recyclability:  {meta['category_type']}")
+    print(f"Designated Bin: {meta['bin_name']}")
+    print(f"Disposal Guide: {meta['disposal_instructions']}")
+    print(f"Impact:         {meta['carbon_saving']}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Predict Waste Item Category")
-    parser.add_argument("--image", type=str, required=True, help="Path to waste item image")
-    parser.add_argument("--model", type=str, default="waste_classifier_model.pth", help="Model checkpoint path")
-    args = parser.parse_args()
-
-    test_img = Image.open(args.image)
-    res = predict_waste_image(test_img, model_path=args.model)
-    
-    print("\n--- CLASSIFICATION RESULT ---")
-    print(f"Predicted Waste: {res['metadata']['label']} ({res['metadata']['icon']})")
-    print(f"Confidence:     {res['confidence'] * 100:.2f}%")
-    print(f"Recyclability:  {res['metadata']['category_type']}")
-    print(f"Designated Bin: {res['metadata']['bin_name']}")
-    print(f"Disposal Guide: {res['metadata']['disposal_instructions']}")
-    print(f"Impact:         {res['metadata']['carbon_saving']}")
+    main()

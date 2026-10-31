@@ -1,5 +1,5 @@
 """
-Waste Segregation Image Classifier - CNN Architecture & Model Definition
+Waste Segregation Classifier - Neural Network Architecture
 Author: AGGIBADALA VENKATA DURGA NAGA PRASAD (23ME1A5402)
 Guide: Ms. G. Hema Sri
 Domain: Deep Learning & Computer Vision
@@ -7,155 +7,122 @@ Domain: Deep Learning & Computer Vision
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torchvision import models
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 
-# Class Categories and Domain Metadata for Smart-Bin Assistant
-WASTE_CLASSES = [
-    "cardboard",
-    "glass",
-    "metal",
-    "paper",
-    "plastic",
-    "trash"
-]
+WASTE_CLASSES = ["cardboard", "glass", "metal", "paper", "plastic", "trash"]
 
 CATEGORY_METADATA: Dict[str, Dict[str, Any]] = {
     "cardboard": {
         "label": "Cardboard",
         "category_type": "Recyclable",
-        "bin_color": "#1E88E5",  # Blue
+        "bin_color": "#1976d2",  # Blue
         "bin_name": "Blue Bin (Paper & Cardboard)",
         "icon": "📦",
         "decomposition_time": "2 months",
-        "disposal_instructions": "Flatten boxes to save space. Keep dry and free of grease or food residues.",
-        "carbon_saving": "Saving 1 ton of cardboard saves 17 mature trees and 7,000 gallons of water.",
-        "tips": "Remove excess adhesive tape and plastic packaging bubbles before discarding."
+        "carbon_saving": "Saves 24% energy vs. virgin cardboard production",
+        "disposal_instructions": "Flatten boxes completely before putting into bin. Keep dry and free of greasy food contamination.",
+        "tips": "Remove excess plastic adhesive tape when possible to assist pulping mills."
     },
     "glass": {
         "label": "Glass",
         "category_type": "Recyclable",
-        "bin_color": "#43A047",  # Green
-        "bin_name": "Green Bin (Glass)",
+        "bin_color": "#2e7d32",  # Green
+        "bin_name": "Green Bin (Glass Containers)",
         "icon": "🍾",
         "decomposition_time": "1,000,000+ years (indefinite)",
-        "disposal_instructions": "Rinse remaining liquids. Remove plastic caps/lids. Handle carefully to prevent breakage.",
-        "carbon_saving": "100% recyclable indefinitely without quality degradation; saves 30% energy vs new glass.",
-        "tips": "Do not mix light bulbs, mirrors, or ceramic cookware with container glass."
+        "carbon_saving": "Recycling 1 ton of glass saves 315 kg of CO2",
+        "disposal_instructions": "Rinse out residual liquids and solids. Remove caps and metal rings.",
+        "tips": "Glass is 100% recyclable infinitely without loss of chemical purity or quality."
     },
     "metal": {
-        "label": "Metal",
+        "label": "Metal / Cans",
         "category_type": "Recyclable",
-        "bin_color": "#FDD835",  # Yellow
+        "bin_color": "#fbc02d",  # Yellow
         "bin_name": "Yellow Bin (Metals & Cans)",
         "icon": "🥫",
-        "decomposition_time": "50 - 500 years",
-        "disposal_instructions": "Rinse beverage and food residue. Aluminum cans can be crushed to save volume.",
-        "carbon_saving": "Recycling aluminum requires 95% less energy than producing aluminum from bauxite ore.",
-        "tips": "Steel food cans, soda cans, aluminum foil (clean) are all accepted."
+        "decomposition_time": "50 - 200 years (Aluminum / Tin)",
+        "carbon_saving": "Recycling aluminum requires 95% less energy than mining bauxite",
+        "disposal_instructions": "Rinse clean and lightly crush cans to conserve smart-bin volume.",
+        "tips": "Recycling a single aluminum beverage can saves enough energy to run a TV for 3 hours."
     },
     "paper": {
         "label": "Paper",
         "category_type": "Recyclable",
-        "bin_color": "#1E88E5",  # Blue
+        "bin_color": "#0288d1",  # Light Blue
         "bin_name": "Blue Bin (Paper & Cardboard)",
-        "icon": "📰",
-        "decomposition_time": "2 to 6 weeks",
-        "disposal_instructions": "Keep clean and dry. Keep newspapers, print sheets, and notebooks segregated.",
-        "carbon_saving": "1 ton of recycled paper preserves 17 trees and prevents 1.5 tons of CO2 emissions.",
-        "tips": "Shredded paper, magazines, notebook pages are recyclable. Wax/plastic coated paper is not."
+        "icon": "📄",
+        "decomposition_time": "2 - 6 weeks",
+        "carbon_saving": "Recycling 1 ton of paper saves 17 trees and 26,500 liters of water",
+        "disposal_instructions": "Keep paper clean and dry. Avoid shredded paper in standard bins without bundling.",
+        "tips": "Ensure no greasy food contamination (such as oily pizza boxes)."
     },
     "plastic": {
         "label": "Plastic",
         "category_type": "Recyclable",
-        "bin_color": "#FB8C00",  # Orange
+        "bin_color": "#ef6c00",  # Orange
         "bin_name": "Orange Bin (Plastics - PET, HDPE)",
         "icon": "🧴",
-        "decomposition_time": "450 - 1000 years",
-        "disposal_instructions": "Empty and rinse out fluids. Check resin identification code (PET 1, HDPE 2 preferred).",
-        "carbon_saving": "Recycling 1 ton of plastic saves ~5,774 kWh of electricity and 16.3 barrels of oil.",
-        "tips": "Single-use thin bags should be deposited at specialized plastic bag collection points."
+        "decomposition_time": "450 - 500 years",
+        "carbon_saving": "Recycling plastics saves 5.774 kWh of energy per kilogram",
+        "disposal_instructions": "Empty all liquids completely. Replace the screw cap so it gets processed together.",
+        "tips": "Check plastic resin code (RIC 1 PET and RIC 2 HDPE are highest value recyclables)."
     },
     "trash": {
-        "label": "Trash / Organic / Non-Recyclable",
-        "category_type": "Non-Recyclable / Compost",
-        "bin_color": "#757575",  # Gray / Black
+        "label": "Trash / Organic",
+        "category_type": "Non-Recyclable",
+        "bin_color": "#616161",  # Dark Gray
         "bin_name": "Gray Bin (Residual Waste & Landfill)",
         "icon": "🗑️",
-        "decomposition_time": "Varies (Biodegradable to centuries)",
+        "decomposition_time": "Variable (Months for organic, indefinite for composite wrappers)",
+        "carbon_saving": "Composting organic fraction eliminates methane generation in anaerobic landfills",
         "disposal_instructions": "Wrap securely if hazardous. Divert food scraps and vegetable peels to wet/compost bins.",
-        "carbon_saving": "Composting organic matter eliminates methane generation in anaerobic landfills.",
-        "tips": "Food waste, soiled paper napkins, broken ceramics, composites go here."
+        "tips": "Separating wet organic waste prevents cross-contamination of high-value recyclables."
     }
 }
 
 
-class CustomWasteCNN(nn.Module):
-    """
-    Tailored Deep Convolutional Neural Network designed for Municipal Waste Classification.
-    Architecture:
-      - 4 Feature Extraction Blocks (Conv2D -> BatchNorm -> ReLU -> MaxPool -> Dropout)
-      - Adaptive Average Pooling
-      - Fully Connected Dense Classifier with Dropout regularization to prevent overfitting.
-    """
-    def __init__(self, num_classes: int = 6, dropout_rate: float = 0.3):
-        super(CustomWasteCNN, self).__init__()
-        
-        # Block 1: 3 -> 32 channels
-        self.block1 = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(32, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout2d(dropout_rate * 0.5)
-        )
-        
-        # Block 2: 32 -> 64 channels
-        self.block2 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout2d(dropout_rate * 0.7)
-        )
-        
-        # Block 3: 64 -> 128 channels
-        self.block3 = nn.Sequential(
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout2d(dropout_rate)
-        )
+class ConvBlock(nn.Module):
+    """Convolutional Block with BatchNorm, ReLU, MaxPool, and Spatial Dropout."""
+    def __init__(self, in_channels: int, out_channels: int, dropout_p: float = 0.25):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.dropout = nn.Dropout2d(p=dropout_p)
 
-        # Block 4: 128 -> 256 channels (High-level semantic features)
-        self.block4 = nn.Sequential(
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout2d(dropout_rate)
-        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        x = self.pool(x)
+        x = self.dropout(x)
+        return x
+
+
+class WasteClassifierCNN(nn.Module):
+    """
+    Tailored Deep Convolutional Neural Network for Municipal Waste Image Classification.
+    Accepts 224x224 RGB input images and outputs logits for the 6 waste categories.
+    """
+    def __init__(self, num_classes: int = 6):
+        super().__init__()
+        # 4 Sequential Convolutional Feature Extraction Blocks
+        self.block1 = ConvBlock(in_channels=3, out_channels=32, dropout_p=0.15)
+        self.block2 = ConvBlock(in_channels=32, out_channels=64, dropout_p=0.20)
+        self.block3 = ConvBlock(in_channels=64, out_channels=128, dropout_p=0.25)
+        self.block4 = ConvBlock(in_channels=128, out_channels=256, dropout_p=0.30)
         
+        # Adaptive Global Average Pooling converts spatial (B, 256, H, W) -> (B, 256, 1, 1)
         self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
         
-        # Dense classification head
+        # Classification Head
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(256, 128),
             nn.BatchNorm1d(128),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),
+            nn.Dropout(p=0.4),
             nn.Linear(128, num_classes)
         )
 
@@ -165,49 +132,20 @@ class CustomWasteCNN(nn.Module):
         x = self.block3(x)
         x = self.block4(x)
         x = self.global_pool(x)
-        x = self.classifier(x)
-        return x
-
-    def get_last_conv_layer(self) -> nn.Module:
-        return self.block4[0]
-
-
-class MobileNetV2WasteClassifier(nn.Module):
-    """
-    Transfer Learning Model based on MobileNetV2.
-    Ideal for real-time edge devices (Smart Bins with Raspberry Pi / Jetson Nano)
-    due to inverted residual blocks and depthwise separable convolutions.
-    """
-    def __init__(self, num_classes: int = 6, pretrained: bool = True):
-        super(MobileNetV2WasteClassifier, self).__init__()
-        weights = models.MobileNet_V2_Weights.DEFAULT if pretrained else None
-        base_model = models.mobilenet_v2(weights=weights)
-        
-        self.features = base_model.features
-        in_features = base_model.classifier[1].in_features
-        
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.3),
-            nn.Linear(in_features, 128),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.2),
-            nn.Linear(128, num_classes)
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.features(x)
-        x = nn.functional.adaptive_avg_pool2d(x, (1, 1))
-        x = torch.flatten(x, 1)
-        x = self.classifier(x)
-        return x
-
-    def get_last_conv_layer(self) -> nn.Module:
-        return self.features[-1]
+        logits = self.classifier(x)
+        return logits
 
 
 def build_model(model_name: str = "custom", num_classes: int = 6, pretrained: bool = True) -> nn.Module:
-    """Factory helper to build selected model"""
-    if model_name.lower() in ["mobilenet", "mobilenet_v2", "transfer"]:
-        return MobileNetV2WasteClassifier(num_classes=num_classes, pretrained=pretrained)
+    """Builds and returns the neural network model."""
+    if model_name.lower() == "custom":
+        return WasteClassifierCNN(num_classes=num_classes)
+    elif model_name.lower() == "mobilenet_v2":
+        from torchvision.models import mobilenet_v2, MobileNet_V2_Weights
+        weights = MobileNet_V2_Weights.DEFAULT if pretrained else None
+        model = mobilenet_v2(weights=weights)
+        in_features = model.classifier[1].in_features
+        model.classifier[1] = nn.Linear(in_features, num_classes)
+        return model
     else:
-        return CustomWasteCNN(num_classes=num_classes)
+        raise ValueError(f"Unsupported model architecture: {model_name}")

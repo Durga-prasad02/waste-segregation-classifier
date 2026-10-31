@@ -16,15 +16,16 @@ if not exist "%PYTHON_EXE%" (
     set PYTHON_EXE=python
 )
 
-echo [1/3] Verifying Dataset and Benchmark Samples...
-"%PYTHON_EXE%" dataset_downloader.py
+if not exist "dataset\train" (
+    echo [1/3] Setting up Dataset from Benchmark Samples...
+    "%PYTHON_EXE%" dataset_downloader.py
+)
 
 if not exist "waste_classifier_model.pth" (
     echo.
     echo [2/3] Training Initial CNN Classifier Model...
     "%PYTHON_EXE%" train.py --epochs 8
 ) else (
-    echo.
     echo [2/3] Trained Model Checkpoint 'waste_classifier_model.pth' Found!
 )
 

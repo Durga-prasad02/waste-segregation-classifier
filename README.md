@@ -15,13 +15,13 @@
 ---
 
 ## 📌 Executive Summary
-This repository contains the complete working prototype for an autonomous smart-bin sorting assistant. Using a tailored Convolutional Neural Network (CNN) and MobileNetV2 transfer learning, the system classifies municipal waste images into 6 standard categories:
+This repository contains the complete working prototype for an autonomous smart-bin sorting assistant. Using a tailored Convolutional Neural Network (CNN), the system classifies municipal waste images into 6 standard categories:
 1. **Cardboard** (Recyclable - Blue Bin)
 2. **Glass** (Recyclable - Green Bin)
 3. **Metal** (Recyclable - Yellow Bin)
 4. **Paper** (Recyclable - Blue Bin)
 5. **Plastic** (Recyclable - Orange Bin)
-6. **Trash / Organic** (Non-Recyclable - Gray/Black Bin)
+6. **Trash / Organic** (Non-Recyclable - Gray Bin)
 
 The deliverable includes an interactive **Streamlit Smart-Bin sorting assistant** with support for file uploads, live smart-bin webcam feeds, and **Grad-CAM Explainable AI** saliency maps.
 
@@ -31,25 +31,25 @@ The deliverable includes an interactive **Streamlit Smart-Bin sorting assistant*
 
 ```mermaid
 flowchart TD
-    A[Waste Item Input] --> B{Input Source}
-    B -->|Upload| C[Image Preprocessing 224x224]
+    A["Waste Item Input"] --> B{"Input Source"}
+    B -->|Upload| C["Image Preprocessing 224x224"]
     B -->|Webcam / Live Stream| C
     B -->|Benchmark Samples| C
     
-    C --> D[Data Augmentation & Normalization]
-    D --> E[Deep CNN / MobileNetV2 Backbone]
+    C --> D["Data Augmentation & Normalization"]
+    D --> E["Deep CNN Feature Extractor"]
     
-    E --> F[Feature Maps & Global Avg Pool]
-    F --> G[Dense Classification Head & Softmax]
+    E --> F["Feature Maps & Global Avg Pool"]
+    F --> G["Dense Classification Head & Softmax"]
     
-    G --> H[Predicted Waste Category]
-    G --> I[Recyclability Determination]
-    E --> J[Grad-CAM Saliency Heatmap Generator]
+    G --> H["Predicted Waste Category"]
+    G --> I["Recyclability Determination"]
+    E --> J["Grad-CAM Saliency Heatmap Generator"]
     
-    H --> K[Smart-Bin Sorting Assistant UI]
+    H --> K["Smart-Bin Sorting Assistant UI"]
     I --> K
     J --> K
-    K --> L[Smart-Bin Actuator / Color-Coded Bin Selection]
+    K --> L["Smart-Bin Actuator / Color-Coded Bin Selection"]
 ```
 
 ---
@@ -60,19 +60,22 @@ flowchart TD
 waste_segregation_classifier/
 │
 ├── app.py                   # Interactive Streamlit Web UI (Smart-Bin Assistant)
-├── model.py                 # Neural Network Architectures (Custom CNN & MobileNetV2)
+├── model.py                 # Neural Network Architecture (Custom CNN & MobileNetV2)
 ├── train.py                 # Training pipeline, validation, and performance curve plotting
 ├── predict.py               # Standalone CLI inference & Grad-CAM visualization
-├── dataset_downloader.py    # Benchmark dataset downloader and synthetic bootstrapper
+├── dataset_downloader.py    # Dataset bootstrapping and augmentations
+├── test_all_samples.py      # Benchmark evaluation script
 ├── requirements.txt         # Python library dependencies
-├── samples/                 # Sample images for instant testing
+├── run_app.bat              # One-click Windows application launcher
+├── push_to_github.bat       # One-click script to push project to GitHub
+├── samples/                 # High-resolution photographic demonstration images
 │   ├── demo_cardboard.jpg
 │   ├── demo_glass.jpg
 │   ├── demo_metal.jpg
 │   ├── demo_paper.jpg
 │   ├── demo_plastic.jpg
 │   └── demo_trash.jpg
-└── README.md                # Comprehensive documentation & setup instructions
+└── README.md                # Comprehensive documentation
 ```
 
 ---
@@ -86,40 +89,20 @@ pip install -r requirements.txt
 
 ### 2. Generate Dataset & Train Model
 ```powershell
-# Step 1: Bootstrap sample dataset structure
+# Step 1: Bootstrap augmented dataset from real photographic samples
 python dataset_downloader.py
 
 # Step 2: Train CNN Model (generates waste_classifier_model.pth & training_metrics.png)
-python train.py --model custom --epochs 10 --batch_size 16
+python train.py --epochs 8 --batch_size 16
 ```
 
-### 3. Run Standalone CLI Prediction
+### 3. Run Benchmark Evaluation
 ```powershell
-python predict.py --image samples/demo_plastic.jpg
+python test_all_samples.py
 ```
 
-### 4. Launch the Smart-Bin Sorting Assistant Web UI
+### 4. Launch the Web App
 ```powershell
 streamlit run app.py
 ```
-*Access the local web dashboard at `http://localhost:8501`*
-
----
-
-## 🔍 Explainable AI (Grad-CAM)
-To satisfy rigorous academic evaluation, the prototype includes **Grad-CAM (Gradient-weighted Class Activation Mapping)**:
-- Computes gradients of the target class score with respect to the final convolutional feature maps.
-- Produces a visual heatmap overlay that highlights which visual textures (edges, bottle necks, can rims, corrugation) led to the classification decision.
-
----
-
-## 🎓 Viva Voce & Review Q&A
-
-**Q1: Why use CNN for waste segregation over traditional image processing?**  
-*Answer:* Traditional computer vision relies on handcrafted features (like color thresholds or Hough circle transforms), which fail when waste items are crumpled, dirty, or under variable lighting. CNNs automatically learn hierarchical spatial features from raw pixels, achieving high generalization across varied municipal waste conditions.
-
-**Q2: What is the purpose of MobileNetV2 in smart-bin deployment?**  
-*Answer:* MobileNetV2 uses depthwise separable convolutions and inverted residual blocks, reducing parameters and computational cost by over 75% compared to standard architectures (VGG/ResNet), allowing real-time inference on edge devices like Raspberry Pi 4 or Jetson Nano in smart bins.
-
-**Q3: How does the system handle real-world deployment challenges?**  
-*Answer:* Real-world waste images suffer from occlusions, multi-item overlap, and lighting fluctuations. We incorporate data augmentations (random rotations, color jitter, horizontal flips) during training and provide confidence thresholds with non-recyclable fallback bins.
+*Or simply double-click `run_app.bat`.*
