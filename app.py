@@ -103,7 +103,7 @@ if "history_log" not in st.session_state:
 
 def render_sidebar():
     with st.sidebar:
-        st.image("https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=60", use_column_width=True)
+        st.image("https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=60", width="stretch")
         st.title("🌱 Smart-Bin Hub")
         st.markdown("**Autonomous Waste Segregation Prototype**")
         st.divider()
@@ -188,14 +188,14 @@ def display_prediction_results(image: Image.Image, model_path: str, use_gradcam:
         if use_gradcam and results.get("gradcam_overlay") is not None:
             tab_orig, tab_cam, tab_heat = st.tabs(["Original Image", "Grad-CAM Activation", "Raw Heatmap"])
             with tab_orig:
-                st.image(image, caption="Input Waste Item", use_column_width=True)
+                st.image(image, caption="Input Waste Item", width="stretch")
             with tab_cam:
-                st.image(results["gradcam_overlay"], caption="Grad-CAM Focus Overlay (Conv4 Features)", use_column_width=True)
+                st.image(results["gradcam_overlay"], caption="Grad-CAM Focus Overlay (Conv4 Features)", width="stretch")
                 st.caption("🔴 Red/Yellow highlights denote features that strongly influenced the CNN decision.")
             with tab_heat:
-                st.image(results["heatmap"], caption="Salience Activation Map", use_column_width=True)
+                st.image(results["heatmap"], caption="Salience Activation Map", width="stretch")
         else:
-            st.image(image, caption="Analyzed Waste Item", use_column_width=True)
+            st.image(image, caption="Analyzed Waste Item", width="stretch")
 
     with col_info:
         st.subheader("📋 Smart-Bin Disposal Guidelines")
@@ -267,11 +267,10 @@ def main():
         """)
 
     # Main Interactive Tabs
-    tab_upload, tab_camera, tab_samples, tab_analytics = st.tabs([
+    tab_upload, tab_camera, tab_samples = st.tabs([
         "📤 Image Upload", 
         "📷 Smart-Bin Camera", 
-        "🧪 Demonstration Gallery", 
-        "📈 Architecture & Metrics"
+        "🧪 Demonstration Gallery"
     ])
 
     with tab_upload:
@@ -305,7 +304,7 @@ def main():
             if sample_file.exists():
                 with sample_cols[idx]:
                     img = Image.open(sample_file)
-                    st.image(img, caption=CATEGORY_METADATA[cls]["label"], use_column_width=True)
+                    st.image(img, caption=CATEGORY_METADATA[cls]["label"], width="stretch")
                     if st.button(f"Test {cls.capitalize()}", key=f"btn_{cls}"):
                         selected_sample_img = img
 
@@ -313,24 +312,10 @@ def main():
             st.divider()
             display_prediction_results(selected_sample_img, model_path, use_gradcam)
 
-    with tab_analytics:
-        st.subheader("🏗️ Neural Network Architecture Details")
-        st.markdown("""
-        - **Input Resolution:** 224 × 224 × 3 RGB
-        - **Convolutional Feature Extractor:** 4 Conv Blocks (Conv2D 3×3, Batch Normalization, ReLU, MaxPool 2×2, Spatial Dropout)
-        - **Output Classes (6 Categories):** Cardboard, Glass, Metal, Paper, Plastic, Trash
-        - **Regularization:** Batch Normalization + Spatial Dropout (p=0.3) + Weight Decay (L2 = 1e-4)
-        - **Interpretability:** Grad-CAM on layer `block4.conv2d` producing visual saliency maps.
-        """)
-
-        metrics_img_path = Path("training_metrics.png")
-        if metrics_img_path.exists():
-            st.subheader("📊 Training & Validation Performance Curves")
-            st.image(str(metrics_img_path), caption="Cross-Entropy Loss & Accuracy across Epochs", use_column_width=True)
-
-        if st.session_state.history_log:
-            st.subheader("📜 Recent Smart-Bin Inferences")
-            st.dataframe(pd.DataFrame(st.session_state.history_log), use_container_width=True)
+    if st.session_state.history_log:
+        st.divider()
+        with st.expander("📜 Recent Smart-Bin Inferences Session Log", expanded=False):
+            st.dataframe(pd.DataFrame(st.session_state.history_log), width="stretch")
 
 
 if __name__ == "__main__":
