@@ -1,9 +1,4 @@
-"""
-Smart-Bin Sorting Assistant - Streamlit Web UI
-Waste Segregation Image Classifier & Smart Waste Segregation Assistant
-Candidate: AGGIBADALA VENKATA DURGA NAGA PRASAD (23ME1A5402)
-Guide: Ms. G. Hema Sri
-Domain: Deep Learning & Computer Vision
+
 """
 
 import os
