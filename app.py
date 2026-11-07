@@ -1,4 +1,8 @@
-
+"""
+Waste Segregation Classifier - Neural Network Architecture
+Author: AGGIBADALA VENKATA DURGA NAGA PRASAD (23ME1A5402)
+Guide: Ms. G. Hema Sri
+Domain: Deep Learning & Computer Vision
 """
 
 import os
